@@ -1,17 +1,30 @@
 package src.Stemmer;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
 
 import src.Utilities.UtilityClass;
 
 public class Stemmer {
         
     public static void main (String args [])  {
+        /***TO DO: CONVERT INITIAL CORPUS TO LOWERCASE!! AND REMOVE PUNCTUATION AND STOP WORDS */
         preProcess();
-        String myWord = "rationalization";
+
+
+        String myWord = "especially";
         System.out.println("initial word : " + myWord);
         System.out.println(RealPorterStemmer(myWord));
         
+
+         String corpus = "Among going manor who did Do ye is celebrated it sympathize considered May ecstatic did surprise elegance the ignorant age Own her miss cold last It so numerous if he outlived disposal How but sons mrs lady when Her especially are unpleasant out alteration continuing unreserved resolution Hence hopes noisy may china fully and Am it regard stairs branch thirty length afford ";
+        HashMap<String, Integer> words = extractWords(corpus);
+
+        for (Map.Entry<String, Integer> map : words.entrySet()) {
+            System.out.print(map.getKey() + "\t");
+            String stem = RealPorterStemmer(map.getKey());
+            System.out.print(stem + "\n\n");
+
+        }
     }
 
     public static void preProcess () {
@@ -29,71 +42,11 @@ public class Stemmer {
   
   public static String RealPorterStemmer (String word) {
          String stem = ApplyStemRules(word);
-         System.out.println("Stem is : " + stem);
+        // System.out.println("Stem is : " + stem);
          //At this point, we have the tag form and the measure, retrieve the stem 
          
         return stem;
   }
-
-    public static String PorterStemmer (String word) {
-        Boolean isVowel = isLetterVowel(0, word);
-        if (word.length() == 1) {
-            return (isVowel)? "V" : "C";
-        }
-        String form = "";
-        if (!isVowel) {
-            //Starts with C 
-            form +=  "C";
-        }
-        else { 
-               //Starts with V 
-            form +=  "V";
-        }
-        
-       int j = 0; 
-       for (int i = 1; i<word.length(); ++i) {
-           char tag = getTag(i, word);
-           if (tag == word.charAt(j));
-           else  {
-               form += tag;  
-               ++j;
-              }
-            }
-        String cleanedForm = "";
-        cleanedForm += form.charAt(0);
-        //We have got the form at this point, we will now shrink it.
-         for (int i = 1; i<form.length(); ++i) {
-            if (form.charAt(i) == form.charAt(i-1)) ;
-            else 
-                cleanedForm += form.charAt(i);
-         }
-         //continue only if the length of our form is greater than 2 
-
-         int measure  = 0;
-         if (cleanedForm.length() == 2) {
-            if (cleanedForm.charAt(0) == 'V' && cleanedForm.charAt(1) == 'C') {
-                //measure is "1"
-                measure = 1; 
-
-            }
-
-         } 
-         else {
-            //
-            for (int  i = (cleanedForm.charAt(0) == 'V' ? 0 : 1); i<cleanedForm.length() - 1; ++i) {
-                //if ((i+1) != (cleanedForm.length() - 1)) {
-                    if (cleanedForm.charAt(i) == 'V' && cleanedForm.charAt(i+1) == 'C')
-                        measure +=1;                    
-                //}
-            }
-         }
-         System.out.println("Measure is : " + measure);
-         String stem = ApplyStemRules(word);
-         System.out.println("Stem is : " + stem);
-         //At this point, we have the tag form and the measure, retrieve the stem 
-         
-        return cleanedForm; 
-    }
 
     public static String ApplyStemRules(String word) {
         String stem = word;
@@ -103,16 +56,267 @@ public class Stemmer {
         }
        
         stem = applyStep1b(stem);
+        System.out.println(stem);
         
         if (stem.charAt(stem.length() - 1) == 'y') {
           stem = applyStep1c(stem);
         }
 
        stem = applyStep2(stem);
-        
+       stem = applyStep3(stem);    
+       stem = applyStep4(stem);    
+       stem = applyStep5a(stem);
+       stem = applyStep5b(stem);
         
 
         return stem;
+    }
+    private static String applyStep5b (String word) {
+        if (word.endsWith("l")) {
+            if (getTag(word.length() -2, word) == 'C') {
+                //indicating double consonant
+                int m = getMeasure(word, word.length());
+                if (m > 1)
+                  return word.substring(0, word.length() -1);
+            }
+        }
+        return word;
+    }
+    private static String applyStep5a (String word) {
+        String truncatedWord = word;
+        int m = 0;
+        if (word.charAt(word.length() - 1) == 'e') {
+             m = getMeasure(word, word.length() -1);
+             if (m > 1)
+                return word.substring(0, word.length() -1);
+             
+             else if (m == 1) {   
+            //stem ends with cvc where the 2nd c is not w or x or y 
+                            
+                String tmpTag = getTag(word, word.length() - 1);
+                if (tmpTag.equalsIgnoreCase("cvc")) {
+                    Character lastChar = tmpTag.charAt(tmpTag.length() - 1);
+                    if (((lastChar) != 'w')
+                        || (lastChar != 'x') 
+                        || (lastChar != 'y')) {
+
+                            return word.substring(0, word.length() - 1);
+                           
+                        }
+                }
+            }
+        } 
+        return truncatedWord;
+    }
+    private static String applyStep4 (String word) {
+        String truncatedWord = word;
+                int m = 0;
+            
+        switch(word.charAt(word.length() - 1)) {
+            case 'l'  :
+                if (word.endsWith("al")) {
+                    m = getMeasure(word, word.length() - 2);
+                    if (m > 1) {
+                        truncatedWord = word.substring(0, word.length() - 2);
+                        return truncatedWord;
+                    }
+                }
+            break;
+
+            case 'e':
+                if (word.endsWith("ance") || 
+                word.endsWith("ence") ||
+                word.endsWith("able") ||
+                word.endsWith("ible")) {
+                    m = getMeasure(word,word.length()  - 4);
+                if (m >1) {
+                    truncatedWord = word.substring(0, word.length() - 4);
+                    return truncatedWord;
+                }
+                }
+
+               else if (word.endsWith("ate") ||
+                        word.endsWith("ive")        || 
+                        word.endsWith("ize")) {
+                            m = getMeasure(word,word.length() - 3);
+                            if (m > 1) {
+                                truncatedWord = word.substring(0, 
+                                word.length() - 3);
+                                return truncatedWord;
+                            }
+                        }
+            break;
+
+            case 'r':
+                   if (word.endsWith("er")) {
+                    m = getMeasure(word, word.length() - 2);
+                    if (m > 1) {
+                        return word.substring(0, word.length() - 2);
+                    }
+                   }
+            break;
+
+            case 'c':
+                   if (word.endsWith("ic")) {
+                        m = getMeasure(word, word.length() - 2);
+                    if (m > 1) {
+                        return word.substring(0, word.length() - 2);
+                    
+                       }   
+                   }
+            break;
+
+            case 't':
+                if (word.endsWith("ement")) {
+                    m = getMeasure(word, word.length() - 5);
+                    if (m > 1) {
+                        return word.substring(0, word.length() - 5);
+                    }
+                }
+                else if (word.endsWith("ment")) {
+                    m = getMeasure(word, word.length() - 4);
+                    if (m > 1) {
+                        return word.substring(0, word.length() - 4);
+                    }
+                }
+                else if (word.endsWith("ent")
+                || (word.endsWith("ant"))) {
+                    m = getMeasure(word, word.length() - 3);
+                    if (m > 1) {
+                        return word.substring(0, word.length() - 3);
+                    }
+                }
+            break;
+
+            case 'n' :
+                if (word.endsWith("ion")) {
+                  String truncString = word.substring(0, word.length() - 3);
+                  if (truncString.charAt(truncString.length() - 1)
+                  == 't' ||
+                  truncString.charAt(truncString.length() - 1) == 's') {
+
+                    m = getMeasure(truncString, truncString.length() - 2);
+                    if (m > 1) {
+                        return truncString;
+                    }
+
+                  }
+                }
+            break; //compound rules
+
+            case 'u':
+                if (word.endsWith("ou")) {
+                    m = getMeasure(word, word.length() - 2);
+                    if (m > 1) {
+                        return word.substring(0, word.length()- 2);
+                    }
+                }
+            break;
+
+            case 'm':
+                if (word.endsWith("ism")) {
+                    m = getMeasure(word, word.length() - 3);
+                    if (m > 1) {
+                        return word.substring(0, word.length() - 3);
+                    }
+                }
+            break;
+
+            case 'i':
+                if (word.endsWith("iti")) {
+                    m = getMeasure(word, word.length() - 3);
+                    if (m > 1) {
+                        return word.substring(0, word.length() - 3);
+                    }
+                }
+            break;
+
+            case 's':
+                if (word.endsWith("ous")) {
+                    m = getMeasure(word, word.length() - 3);
+                    if (m > 1) {
+                        return word.substring(0, word.length() - 3);
+                    }
+                }
+            break;
+
+            default :
+            break;
+        }   
+        return truncatedWord;
+    }
+
+    private static String applyStep3 (String word) {
+        String truncatedWord = word;
+        Boolean none = false;
+        int m = 0;
+        switch (word.charAt(word.length() - 1)) {
+
+            case 'e' :
+                if (word.endsWith("icate")) {
+                  m = getMeasure(word, word.length() - 5);
+                  
+                  if (m > 0) {
+                    truncatedWord = word.substring(0, word.length() - 3);
+                    return truncatedWord;
+                  }
+                }
+                else if (word.endsWith("ative")) {
+                    m = getMeasure(word, word.length() - 5);
+                    if (m > 0) {
+                        truncatedWord = word.substring(0, word.length() - 5);
+                        return truncatedWord;
+                    }
+                } 
+                else if (word.endsWith("alize")) {
+                    m = getMeasure(word, word.length() - 5);
+                    if (m > 0) {
+                        truncatedWord = word.substring(0, word.length() - 3);
+                        return truncatedWord;
+                    }
+                }
+                break;
+             case 'i' :
+                if (word.endsWith("iciti")) {
+                    m = getMeasure(word, word.length() - 5);
+                    if (m > 0) {
+                        truncatedWord = word.substring(0, word.length() - 3);
+                        return truncatedWord;
+                    }
+                }
+                break;
+            case 'l' :   
+                if (word.endsWith("ical")) {
+                    m = getMeasure(word, word.length() -4);
+                    if (m > 0) {
+                        truncatedWord = word.substring(0, word.length() - 2);
+                        return truncatedWord;
+                    }
+                }
+                else if (word.endsWith("ful")) {
+                    m = getMeasure(word, word.length() - 3);
+                    if (m > 0) {
+                        truncatedWord = word.substring(0, word.length() - 3);
+                        return truncatedWord;
+                    }
+                }
+                break;
+                
+             default : 
+                none = true;
+                break;   
+
+        }
+        if (none) {
+            if (word.endsWith("ness")) {
+                m = getMeasure(word, word.length() - 4);
+                if (m > 0) {
+                    truncatedWord = word.substring(0, word.length() - 4);
+                    return truncatedWord;
+                }
+            }
+        }
+        return truncatedWord;
     }
     private static String applyStep2 (String word) {
         Boolean none = false;
@@ -177,7 +381,7 @@ public class Stemmer {
                     if (m > 0) {
                         truncatedWord = word.substring(0, word.length() - 2);
 
-                     if (truncatedWord.charAt(truncatedWord.length()) == 'b')   {
+                     if (truncatedWord.charAt(truncatedWord.length() - 1) == 'b')   {
                         truncatedWord += "le";
                      }
                      return truncatedWord;
@@ -394,7 +598,7 @@ public class Stemmer {
     private static int getMeasure (String word, int length_lim) {
         int measure = 0;  
         String cleanedForm = getTag(word, length_lim); //tag
-        System.out.println("Cleaned form tag is :  " + cleanedForm);
+//        System.out.println("Cleaned form tag is :  " + cleanedForm);
          if (cleanedForm.length() == 2) { //trivial case
             if (cleanedForm.charAt(0) == 'V' && cleanedForm.charAt(1) == 'C') {
                 //measure is "1"
@@ -415,6 +619,7 @@ public class Stemmer {
         return measure;
     }
     public static String applyStep1b (String word) {
+        if (word.length() <= 2) return word;
 
         String truncatedWord = word;
         Boolean containsVowel = false;
