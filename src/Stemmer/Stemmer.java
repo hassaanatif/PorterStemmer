@@ -11,20 +11,21 @@ public class Stemmer {
         preProcess();
 
 
-        String myWord = "especially";
-        System.out.println("initial word : " + myWord);
+       // String myWord = "Consultantations";
+       String myWord =  "Consultantative"; 
+       System.out.println("initial word : " + myWord);
         System.out.println(RealPorterStemmer(myWord));
         
 
-         String corpus = "Among going manor who did Do ye is celebrated it sympathize considered May ecstatic did surprise elegance the ignorant age Own her miss cold last It so numerous if he outlived disposal How but sons mrs lady when Her especially are unpleasant out alteration continuing unreserved resolution Hence hopes noisy may china fully and Am it regard stairs branch thirty length afford ";
-        HashMap<String, Integer> words = extractWords(corpus);
+        //  String corpus = "Among going manor who did Do ye is celebrated it sympathize considered May ecstatic did surprise elegance the ignorant age Own her miss cold last It so numerous if he outlived disposal How but sons mrs lady when Her especially are unpleasant out alteration continuing unreserved resolution Hence hopes noisy may china fully and Am it regard stairs branch thirty length afford ";
+        // HashMap<String, Integer> words = extractWords(corpus);
 
-        for (Map.Entry<String, Integer> map : words.entrySet()) {
-            System.out.print(map.getKey() + "\t");
-            String stem = RealPorterStemmer(map.getKey());
-            System.out.print(stem + "\n\n");
+        // for (Map.Entry<String, Integer> map : words.entrySet()) {
+        //     System.out.print(map.getKey() + "\t");
+        //     String stem = RealPorterStemmer(map.getKey());
+        //     System.out.print(stem + "\n\n");
 
-        }
+        // }
     }
 
     public static void preProcess () {
@@ -49,29 +50,44 @@ public class Stemmer {
   }
 
     public static String ApplyStemRules(String word) {
+                       System.out.println("Before ANY STEP! , word is : "+ word);
+
         String stem = word;
+
         if (word.charAt(word.length() - 1) == 's') { 
              stem = applyStep1a(word);
             System.out.println("About to apply step1b");
         }
-       
+       System.out.println("Before step 1b , stem is : "+ stem);
         stem = applyStep1b(stem);
         System.out.println(stem);
         
+        System.out.println("stem is : " + stem);
         if (stem.charAt(stem.length() - 1) == 'y') {
           stem = applyStep1c(stem);
         }
 
+       System.out.println("stem before step 2 : " + stem);
+
        stem = applyStep2(stem);
+       System.out.println("stem before step 3 : " + stem);
+
        stem = applyStep3(stem);    
+       System.out.println("stem before step 4 : " + stem);
+
        stem = applyStep4(stem);    
+       System.out.println("stem before step 5 : " + stem);
+
        stem = applyStep5a(stem);
+
+       System.out.println("stem before step 6 : " + stem);
        stem = applyStep5b(stem);
         
 
         return stem;
     }
     private static String applyStep5b (String word) {
+        System.out.println("Inside 5b : " + word);
         if (word.endsWith("l")) {
             if (getTag(word.length() -2, word) == 'C') {
                 //indicating double consonant
@@ -82,6 +98,12 @@ public class Stemmer {
         }
         return word;
     }
+    private static Boolean followsVowelConsonantPattern (String word) {
+        if (word.length() < 2) 
+            return false;
+        return (getTag(word.length() -1, word) == 'C'
+            && getTag(word.length() - 2, word) == 'V');
+    }
     private static String applyStep5a (String word) {
         String truncatedWord = word;
         int m = 0;
@@ -91,19 +113,11 @@ public class Stemmer {
                 return word.substring(0, word.length() -1);
              
              else if (m == 1) {   
-            //stem ends with cvc where the 2nd c is not w or x or y 
-                            
-                String tmpTag = getTag(word, word.length() - 1);
-                if (tmpTag.equalsIgnoreCase("cvc")) {
-                    Character lastChar = tmpTag.charAt(tmpTag.length() - 1);
-                    if (((lastChar) != 'w')
-                        || (lastChar != 'x') 
-                        || (lastChar != 'y')) {
+                Boolean vowelConsonantPattern = followsVowelConsonantPattern(word);
+                if (!(vowelConsonantPattern)) {
 
                             return word.substring(0, word.length() - 1);
-                           
-                        }
-                }
+               }
             }
         } 
         return truncatedWord;
@@ -539,25 +553,20 @@ public class Stemmer {
     }
     private static String applyStep1a (String word) {
         Character tmpChar = word.charAt(word.length() - 2);
-        String truncatedWord = "";
-        if (tmpChar == 's') {
-            //ss
-            return word;
+        String truncatedWord = word;
+
+        switch (tmpChar) { 
+            case 'e' :
+                if (word.endsWith("esses")
+                || word.endsWith("ies")) {
+                    return word.substring(0, word.length() - 2);
+                }
+            break;
+
+            case 's': //double s
+                return word;
         }
-        else if (tmpChar == 'e')  {
-            if (word.charAt(word.length() - 3) == 'i') {
-                //IES -> I 
-                truncatedWord = word.substring(0, word.length() - 2); //we will just leave out the i
-            }
-            else if (word.charAt(word.length() - 3) == 's' && word.charAt(word.length() - 4) == 's') {
-                //SSES -> SS
-                truncatedWord = word.substring(0, word.length() - 2); //we will just leave out the ss
-            }
-        }
-        else { //if it is just a single 's' at the end
-            truncatedWord = word.substring(0, word.length() - 1); //we will just leave out the i
-        }
-        return truncatedWord;
+        return word.substring(0, word.length() - 1);
     }
 
     private static String getTag (String word, int length_lim) {
