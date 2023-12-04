@@ -5,7 +5,14 @@ import java.util.Map;
 import src.Utilities.UtilityClass;
 
 public class Stemmer {
-        
+    private static Boolean preProcessed = false;
+
+    public static String PorterStemmer(String corpus) { 
+        if (!preProcessed) 
+             preProcess();
+        return RealPorterStemmer(corpus);    
+    }    
+    
     public static void main (String args [])  {
         /***TO DO: CONVERT INITIAL CORPUS TO LOWERCASE!! AND REMOVE PUNCTUATION AND STOP WORDS */
         preProcess();
@@ -30,6 +37,7 @@ public class Stemmer {
 
     public static void preProcess () {
         UtilityClass.preProcess();
+        preProcessed = true; 
     }
 
     public static String removePunctuation (String corpus) {
