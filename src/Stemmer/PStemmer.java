@@ -4,13 +4,13 @@ import java.util.Map;
 
 import src.Utilities.UtilityClass;
 
-public class Stemmer {
+public class PStemmer {
     private static Boolean preProcessed = false;
 
     public static String PorterStemmer(String corpus) { 
         if (!preProcessed) 
-             preProcess();
-        return RealPorterStemmer(corpus);    
+             preProcess();    
+        return RealPorterStemmer(corpus.toLowerCase());    
     }    
     
     public static void main (String args [])  {
